@@ -141,13 +141,7 @@ public class OperatingSystem {
 
       // semWait
 
-    public void semWait(String resource){
-        switch (resource) {
-            case "userInput":
-            case "userOutput":
-            case "file":
-        }
-    }
+
 
     // semSignal
 
