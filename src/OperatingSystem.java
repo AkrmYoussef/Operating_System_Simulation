@@ -2,6 +2,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Time;
+import java.time.LocalTime;
 import java.util.*;
 
 
@@ -12,15 +14,28 @@ public class OperatingSystem {
     Queue<Process> blockedForScanner;  //2-Taking user input
     Queue<Process> blockedForOutput;  //3-Outputting on the screen.
     int highestPid;
-    Pair[] memory;
+    private Pair[] memory;
+    private ArrayList<Pair> disk;
+
+    //memory constants
     final static int partitionSize = 20;
     final static int memSize = 40;
+
+    //scheduler constants
+    private int time = -1;
+    private final static int quantumSize = 2;
+    private final static int processOneArrivalTime = 0;
+    private final static int processTwoArrivalTime = 1;
+    private final static int processThreeArrivalTime = 4;
+
     int mutexR1;
     int mutexR2;
     int mutexR3;
+
     public OperatingSystem() {
         highestPid = -1;
         memory = new Pair[memSize];
+        disk = new ArrayList<>();
         readyQ = new LinkedList<>();
         blockedQ = new LinkedList<>();
         blockedForAccessing = new LinkedList<>();
@@ -60,31 +75,33 @@ public class OperatingSystem {
             }
         }
         if (!spaceInMemory)
-            //call scheduler to swap
-            ;
+            minBoundary = swapInProcess(null);
 
-        maxBoundary = minBoundary + partitionSize;
+        maxBoundary = minBoundary + partitionSize - 1;
         processID = ++highestPid;
 
         memory[minBoundary + 0] = new Pair("processID", processID);
         memory[minBoundary + 1] = new Pair("processState", processState);
-        memory[minBoundary + 2] = new Pair("programCounter", minBoundary + 8);
+        memory[minBoundary + 2] = new Pair("programCounter", minBoundary + 9);
         memory[minBoundary + 3] = new Pair("minBoundary", minBoundary);
         memory[minBoundary + 4] = new Pair("maxBoundary", maxBoundary);
         memory[minBoundary + 5] = new Pair("a", null);
         memory[minBoundary + 6] = new Pair("b", null);
         memory[minBoundary + 7] = new Pair("c", null);
+        memory[minBoundary + 8] = new Pair("lastModified", java.time.LocalTime.now());
         Process p = new Process(processID, minBoundary, maxBoundary, this);
         this.readyQ.add(p);
 
         int instructionCount = 0;
         LinkedList<String> data = readFile(fileName);
-        for (int i = minBoundary + 8; i < maxBoundary; i++) {
+        for (int i = minBoundary + 9; i < maxBoundary; i++) {
             memory[i] = new Pair("instruction" + instructionCount, data.get(instructionCount));
             instructionCount++;
             if (instructionCount == data.size())
                 break;
         }
+
+        System.out.println("Process with PID " + readFromMemory(minBoundary).getData() + " is created and put into memory");
 
     }
 
@@ -134,17 +151,6 @@ public class OperatingSystem {
 
    }
 
-
-
-
-
-
-      // semWait
-
-
-
-    // semSignal
-
     public static boolean isNumbers(String str) {
 
         for (int i = 0; i < str.length(); i++)
@@ -153,28 +159,160 @@ public class OperatingSystem {
         return true;
     }
 
-    public Pair[] getMemory() {
-        return memory;
+    public void passTime(){
+        time++;
+        if(time==processOneArrivalTime)
+            createProcess("Program_1");
+        if(time==processTwoArrivalTime)
+            createProcess("Program_2");
+        if(time==processThreeArrivalTime)
+            createProcess("Program_3");
+
+        //print memory
+        System.out.println(" ");
+        System.out.print("[");
+        for (Pair p : memory)
+            System.out.print(p + ", ");
+        System.out.print("]");
+        System.out.println(" ");
+
+    }
+
+    public int getTime(){
+        return time;
+    }
+
+    public void startScheduler(){
+
+        //set time to 0, creating the first process
+        passTime();
+
+        //loop until ready queue is empty
+        while(!readyQ.isEmpty()) {
+
+            //get first process from ready queue
+            Process p = readyQ.poll();
+            //set its state to running
+            p.setProcessState(ProcessState.running);
+
+            //check if it is in the memory
+            boolean processPresentInMemory = false;
+            for (int i = 0; i < memSize; i += partitionSize) {
+                if (memory[i]!=null && memory[i].getData().equals(p.pcb.get("Process ID : "))) {
+                    processPresentInMemory = true;
+                }
+            }
+
+            //if not, swap it in
+            if(!processPresentInMemory)
+                swapInProcess(p);
+
+            //run the process for its quantum size
+            for(int i = 0; i<quantumSize; i++) {
+                if (p.getProcessState() == ProcessState.running) {
+
+                    p.executeLine();
+                    p.setLastModified();
+                    passTime();
+
+                    //check if program counter is on a null value or outside of the process boundary
+                    //if it is, consider the process finished and remove it from memory
+                    int minBoundary = (int) p.pcb.get("Minimum Boundary : ");
+                    int maxBoundary = (int) p.pcb.get("Maximum Boundary : ");
+                    if(p.getProgramCounter()>maxBoundary ||  readFromMemory(p.getProgramCounter())==null) {
+                        p.setProcessState(ProcessState.finished);
+                        for(int j = minBoundary; j < maxBoundary; j++){
+                            memory[j] = null;
+                        }
+                    }
+
+                } else {
+                    break;
+                }
+            }
+
+            //return process to ready queue
+            if(p.getProcessState()==ProcessState.running) {
+                p.setProcessState(ProcessState.ready);
+                readyQ.add(p);
+            }
+
+        }
+    }
+
+    public int swapInProcess(Process p){
+
+        //find the least recently modified process, and get its minBoundary
+        LocalTime leastRecentModification = null;
+        int locationToSwapOut = 0;
+        for (int i = 8; i < memSize; i += partitionSize) {
+            if (leastRecentModification==null ||  ((LocalTime)memory[i].getData()).compareTo(leastRecentModification) < 0) {
+                leastRecentModification = (LocalTime)memory[i].getData();
+                locationToSwapOut = i - 8;
+            }
+        }
+
+        System.out.println("Process with PID " + readFromMemory(locationToSwapOut).getData() + " is swapped out from memory");
+
+        //for each word in the process boundary add it to ArrayList disk and remove it from memory
+        for(int i = locationToSwapOut; i < locationToSwapOut + partitionSize; i++){
+            disk.add(memory[i]);
+            memory[i] = null;
+        }
+
+        //find the location (in disk) of the process we want to swap in
+        int locationInDisk = -1;
+        for(int i = 0; i<disk.size(); i+=partitionSize){
+            if(p!=null && (int)disk.get(i).getData()==(int)p.pcb.get("Process ID : ")) {
+                locationInDisk = i;
+                break;
+            }
+        }
+
+        //not in disk, this means process is still in the creation process
+        if(locationInDisk==-1) {
+            return locationToSwapOut;
+        }
+
+        //put in the process data from the disk into memory
+        for(int i = locationToSwapOut; i < locationToSwapOut + partitionSize; i++){
+            memory[i] = disk.remove(locationInDisk);
+        }
+
+        //set the new program counter and process boundaries
+        int oldProgramCounter = (int) memory[locationToSwapOut + 2].getData();
+        int oldMinBoundary = (int) memory[locationToSwapOut + 3].getData();
+        memory[locationToSwapOut + 2] = new Pair("programCounter", locationToSwapOut + (oldProgramCounter-oldMinBoundary));
+        memory[locationToSwapOut + 3] = new Pair("minBoundary", locationToSwapOut);
+        memory[locationToSwapOut + 4] = new Pair("maxBoundary", locationToSwapOut + partitionSize - 1);
+        p.pcb.replace("Minimum Boundary : ",locationToSwapOut);
+        p.pcb.replace("Maximum Boundary : ",locationToSwapOut + partitionSize - 1);
+        p.pcb.replace("Program Counter : ",locationToSwapOut + (oldProgramCounter-oldMinBoundary));
+
+        System.out.println("Process with PID " + readFromMemory(locationToSwapOut).getData() + " is swapped into memory");
+
+        return locationToSwapOut;
+
     }
 
     public static void main(String[] args) {
-/*        OperatingSystem os = new OperatingSystem();
+        OperatingSystem os = new OperatingSystem();
         // os.readFile("Program_1");
-        System.out.println();
         //System.out.println(os.toString());
         // os.writeFile("omar&ziad","playing football and ping pong \n eating meat");
         // os.print("Program_1");
         // System.out.println(isNumbers("1242876jbub"));
-        os.createProcess("Program_1");
-        os.readyQ.poll().assign("c", "input");
+//        os.createProcess("Program_1");
+//        os.readyQ.poll().assign("c", "input");
 
-        //print memory
-        System.out.print("[");
-        for (Pair p : os.memory)
-            System.out.print(p + ", ");
-        System.out.print("]");*/
+//        //print memory
+//        System.out.print("[");
+//        for (Pair p : os.memory)
+//            System.out.print(p + ", ");
+//        System.out.print("]");
 
-        printFromTo(3,9);
+//        printFromTo(3,9);
+//        os.startScheduler(); //don't test will run forever!!!
 
     }
 }

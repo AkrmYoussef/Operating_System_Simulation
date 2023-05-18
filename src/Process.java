@@ -1,3 +1,5 @@
+import java.sql.Time;
+import java.time.LocalTime;
 import java.util.Hashtable;
 import java.util.Scanner;
 
@@ -10,10 +12,37 @@ public class Process {
         pcb.put("Minimum Boundary : ", minBoundary);
         pcb.put("Maximum Boundary : ", maxBoundary);
         pcb.put("Process ID : ", pid);
-        pcb.put("Program Counter : ", minBoundary + 8);
+        pcb.put("Program Counter : ", minBoundary + 9);
         pcb.put("Process state : ", ProcessState.ready);
         this.os = os;
     }
+
+    public void setProcessState(ProcessState ps){
+        pcb.replace("Process State : ",ps);
+        os.writeIntoMemory((int)pcb.get("Minimum Boundary : ") + 1, ps);
+    }
+
+    public ProcessState getProcessState(){
+        return (ProcessState) (os.readFromMemory((int)pcb.get("Minimum Boundary : ") + 1).getData());
+    }
+
+    public int getProgramCounter(){
+        return (int) (os.readFromMemory((int)pcb.get("Minimum Boundary : ") + 2).getData());
+    }
+
+    public LocalTime getLastModified(){
+        return (LocalTime) (os.readFromMemory((int)pcb.get("Minimum Boundary : ") + 8).getData());
+    }
+
+    public void setLastModified(){
+        os.writeIntoMemory((int)pcb.get("Minimum Boundary : ") + 8 , java.time.LocalTime.now() );
+    }
+
+    public void executeLine(){
+        // *** omar and mohamed's part ***
+        // use program counter please
+        // need this method to test scheduler - ziad
+    };
 
     public void assign(String variable, String value) {
         int newVal = 0;
@@ -27,11 +56,11 @@ public class Process {
         if (OperatingSystem.isNumbers(value))
             newVal = Integer.parseInt(value);
         for (int i = minBoundary; i < maxBoundary; i++) {
-            if (os.getMemory()[i] != null && os.getMemory()[i].getVariable().equals(variable))
+            if (os.readFromMemory(i) != null && os.readFromMemory(i).getVariable().equals(variable))
                 if (OperatingSystem.isNumbers(value))
-                    os.getMemory()[i].setData(newVal);
+                    os.readFromMemory(i).setData(newVal);
                 else
-                    os.getMemory()[i].setData(value);
+                    os.readFromMemory(i).setData(value);
         }
 
 
@@ -82,7 +111,13 @@ public class Process {
              else{
                  os.readyQ.add(os.blockedForOutput.poll());
                  Process p = os.blockedQ.poll();
-                 p.pcb.replace("Process state : ",ProcessState.finished);
+
+                 // *** AKRAM PLEASE READ THIS VVVVVV ***
+                 //process that is first in blockedForOutput queue isn't the same as the process that is first in blockedQ
+                 //for example if a process 1 is blocked for input and then process 2 is blocked for output
+                 //blockedForOutput has process 2 first but blockedQ has process 1 first, right?? - ziad
+
+                 p.pcb.replace("Process state : ",ProcessState.finished); //<-- why finished??
              }
         }
         else if(resource.equals("userInput")){
