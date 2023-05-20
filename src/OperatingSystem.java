@@ -21,6 +21,14 @@ public class OperatingSystem {
     final static int partitionSize = 20;
     final static int memSize = 40;
 
+    public Pair[] getMemory() {
+        return memory;
+    }
+
+    public void setMemory(Pair[] memory) {
+        this.memory = memory;
+    }
+
     //scheduler constants
     private int time = -1;
     private final static int quantumSize = 2;
@@ -129,12 +137,13 @@ public class OperatingSystem {
 
 
     // print
+
+
     public void print(String filename) {
         for (String s : readFile(filename)) {
             System.out.println(s);
         }
     }
-
     public Pair readFromMemory(int idx) {
         return memory[idx];
     }
@@ -145,11 +154,7 @@ public class OperatingSystem {
 
 
     // printFromTo
-   public static void printFromTo(int x , int y){
-      for(int i= x+1 ; i < y; i++)
-          System.out.print(i+(((i==y-1)?"":",")));
 
-   }
 
     public static boolean isNumbers(String str) {
 
@@ -314,6 +319,10 @@ public class OperatingSystem {
 //        printFromTo(3,9);
 //        os.startScheduler(); //don't test will run forever!!!
 //
+//       String lineOfInstructions = "assign b readFile a";
+//        String[] instructions = lineOfInstructions.split(" ");
+//        for (int i =0 ;i<instructions.length;i++)
+//            System.out.println(instructions[i]);
     }
 }
 

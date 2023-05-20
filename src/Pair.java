@@ -27,4 +27,5 @@ public class Pair {
     public String toString() {
         return "("+variable+","+data+")";
     }
+
 }
