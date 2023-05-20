@@ -71,7 +71,7 @@ public class Process {
             if (os.mutexR3 == 1) {
                 os.mutexR3 = 0;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + "wants to acquire Outputting on the screen resource ");
-                this.pcb.replace("Process state : ",ProcessState.running);
+
             } else {
                 os.blockedForOutput.add(this);
                 os.blockedQ.add(this);
@@ -81,9 +81,8 @@ public class Process {
             if (os.mutexR2 == 1) {
                 os.mutexR2 = 0;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire Taking user input resource ");
-                this.pcb.replace("Process state : ",ProcessState.running);
             } else {
-                os.blockedForOutput.add(this);
+                os.blockedForScanner.add(this);
                 os.blockedQ.add(this);
                 this.pcb.replace("Process state : ",ProcessState.blocked);
             }
@@ -91,9 +90,8 @@ public class Process {
             if (os.mutexR1 == 1) {
                 os.mutexR1 = 0;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire Accessing a file, to read or to write resource ");
-                this.pcb.replace("Process state : ",ProcessState.running);
             } else {
-                os.blockedForOutput.add(this);
+                os.blockedForAccessing.add(this);
                 os.blockedQ.add(this);
                 this.pcb.replace("Process state : ",ProcessState.blocked);
             }
@@ -106,42 +104,53 @@ public class Process {
              if(os.blockedForOutput.isEmpty()){
                 os.mutexR3 = 1;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished Outputting on the screen resource ");
-                 this.pcb.replace("Process state : ",ProcessState.blocked);
+                this.pcb.replace("Process state : ",ProcessState.ready);
              }
              else{
-                 os.readyQ.add(os.blockedForOutput.poll());
-                 Process p = os.blockedQ.poll();
+                 Process p = os.blockedForOutput.poll();
+                 os.readyQ.add(p);
+
+                 while (os.blockedQ.peek() != p)
+                     os.blockedQ.add(os.blockedQ.poll());
+                 os.blockedQ.poll();
+
 
                  // *** AKRAM PLEASE READ THIS VVVVVV ***
                  //process that is first in blockedForOutput queue isn't the same as the process that is first in blockedQ
                  //for example if a process 1 is blocked for input and then process 2 is blocked for output
                  //blockedForOutput has process 2 first but blockedQ has process 1 first, right?? - ziad
 
-                 p.pcb.replace("Process state : ",ProcessState.finished); //<-- why finished??
              }
         }
         else if(resource.equals("userInput")){
-            if(os.blockedForOutput.isEmpty()){
+            if(os.blockedForScanner.isEmpty()){
                 os.mutexR2 = 1;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished Taking user input resource ");
-                this.pcb.replace("Process state : ",ProcessState.finished);
+                this.pcb.replace("Process state : ",ProcessState.ready);
             }
             else{
-                os.readyQ.add(os.blockedForOutput.poll());
-                Process p = os.blockedQ.poll();
-                p.pcb.replace("Process state : ",ProcessState.ready);
+                Process p = os.blockedForScanner.poll();
+                os.readyQ.add(p);
+
+                while (os.blockedQ.peek() != p)
+                    os.blockedQ.add(os.blockedQ.poll());
+                os.blockedQ.poll();
             }
         }
         else{
-            if(os.blockedForOutput.isEmpty()){
-                os.mutexR2 = 1;
+            if(os.blockedForAccessing.isEmpty()){
+                os.mutexR1 = 1;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished Accessing a file, to read or to write resource ");
-                this.pcb.replace("Process state : ",ProcessState.finished);
+                this.pcb.replace("Process state : ",ProcessState.ready);
             }
             else{
-                os.readyQ.add(os.blockedForOutput.poll());
-                Process p = os.blockedQ.poll();
-                p.pcb.replace("Process state : ",ProcessState.ready);
+                Process p = os.blockedForAccessing.poll();
+                os.readyQ.add(p);
+
+                while (os.blockedQ.peek() != p)
+                    os.blockedQ.add(os.blockedQ.poll());
+                os.blockedQ.poll();
+
             }
 
         }
