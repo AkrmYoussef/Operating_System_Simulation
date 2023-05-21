@@ -54,14 +54,14 @@ public class OperatingSystem {
         mutexR3=1;
     }
 
-    public LinkedList<String> readFile(String fileName) {
-        LinkedList<String> data = new LinkedList<>();
+    public String readFile(String fileName) {
+       String data ="";
         try {
             File myObj = new File(fileName + ".txt");
             Scanner myReader = new Scanner(myObj);
             while (myReader.hasNextLine()) {
                 String line = myReader.nextLine();
-                data.add(line);
+                data = data + line + "\n";
                 //System.out.println(data);
             }
             myReader.close();
@@ -104,11 +104,12 @@ public class OperatingSystem {
         this.readyQ.add(p);
 
         int instructionCount = 0;
-        LinkedList<String> data = readFile(fileName);
+        String data = readFile(fileName);
+        String[] arr = data.split("\n");
         for (int i = minBoundary + 9; i < maxBoundary; i++) {
-            memory[i] = new Pair("instruction" + instructionCount, data.get(instructionCount));
+            memory[i] = new Pair("instruction" + instructionCount, arr[instructionCount]);
             instructionCount++;
-            if (instructionCount == data.size())
+            if (instructionCount == arr.length)
                 break;
         }
 
@@ -142,8 +143,9 @@ public class OperatingSystem {
     // print
 
 
-    public void print(String filename) {
-        for (String s : readFile(filename)) {
+    public void print(String file) {
+        String [] arr = file.split("\n");
+        for (String s : arr) {
             System.out.println(s);
         }
     }
@@ -340,7 +342,7 @@ public class OperatingSystem {
 
 
 
-        Process po =os.createProcess("Program_2");
+        Process po =os.createProcess("Program_3");
 
         System.out.print("[");
         for (Pair p : os.memory)
@@ -348,7 +350,7 @@ public class OperatingSystem {
         System.out.println("]");
 
         int i = 0;
-        while(i<7) {
+        while(i<9) {
             po.executeLine();
             i++;
         }

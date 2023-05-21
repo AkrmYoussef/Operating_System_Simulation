@@ -58,14 +58,11 @@ public class Process {
                 break;
             case "assign":
                 if(instructions[2].equals("input"))
-                  this.assign(instructions[1], instructions[2]);
-//                else{
-//                    String[] arr = new String[instructions.length-2];
-//                    for (int i = 0 ; i <arr.length ;i++)
-//                        arr[i] = instructions[i+2];
-//                    this.assign(instructions[1],(String) execute(arr));
-//                }
-
+                    this.assign(instructions[1], instructions[2]);
+                if(instructions[2].equals("readFile")){
+                    String dataToRead1 = (String) this.mapVarToData(instructions[3]);
+                    this.assign(instructions[1],this.os.readFile(dataToRead1));
+                }
                 break;
             case "printFromTo":
                 int x = (int) this.mapVarToData(instructions[1]);
