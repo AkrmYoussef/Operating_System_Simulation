@@ -25,6 +25,9 @@ public class Process {
     }
 
     public ProcessState getProcessState() {
+        if(os.readFromMemory((int) pcb.get("Minimum Boundary : ") + 1)==null){
+            return ProcessState.finished;
+        }
         return (ProcessState) (os.readFromMemory((int) pcb.get("Minimum Boundary : ") + 1).getData());
     }
 
@@ -46,7 +49,7 @@ public class Process {
         String[] instructions = lineOfInstructions.split(" ");
         execute(instructions);
         this.pcb.replace("Program Counter : ", pc+1);
-
+        os.writeIntoMemory((int) pcb.get("Minimum Boundary : ") + 2, pc+1);
     }
     public void execute(String[] instructions){
         switch (instructions[0]) {
@@ -97,6 +100,7 @@ public class Process {
     }
 
     public void assign(String variable, String value) {
+        System.out.println("Process " + this + " is now assigning " + value + " to variable " + variable);
         int newVal = 0;
         int minBoundary = (int) pcb.get("Minimum Boundary : ");
         int maxBoundary = (int) pcb.get("Maximum Boundary : ");
@@ -107,12 +111,30 @@ public class Process {
         }
         if (OperatingSystem.isNumbers(value))
             newVal = Integer.parseInt(value);
+        boolean variableFound = false;
         for (int i = minBoundary; i < maxBoundary; i++) {
-            if (os.readFromMemory(i) != null && os.readFromMemory(i).getVariable().equals(variable))
+            if (os.readFromMemory(i) != null && os.readFromMemory(i).getVariable().equals(variable)) {
                 if (OperatingSystem.isNumbers(value))
-                    os.readFromMemory(i).setData(newVal);
+                    os.writeIntoMemory(i,newVal);
                 else
-                    os.readFromMemory(i).setData(value);
+                    os.writeIntoMemory(i,value);
+                variableFound = true;
+            }
+        }
+        if(!variableFound){
+            for (int i = minBoundary; i < maxBoundary; i++) {
+                if (os.readFromMemory(i) != null && os.readFromMemory(i).getVariable().equals("a") && os.readFromMemory(i).getData()==null
+                    || os.readFromMemory(i) != null && os.readFromMemory(i).getVariable().equals("b") && os.readFromMemory(i).getData()==null
+                    || os.readFromMemory(i) != null && os.readFromMemory(i).getVariable().equals("c") && os.readFromMemory(i).getData()==null) {
+
+                    if (OperatingSystem.isNumbers(value))
+                        os.writeIntoMemory(i,newVal);
+                    else
+                        os.writeIntoMemory(i,value);
+                    os.readFromMemory(i).setVariable(variable);
+                    break;
+                }
+            }
         }
 
 
@@ -122,30 +144,45 @@ public class Process {
         if (resource.equals("userOutput")) {
             if (os.mutexR3 == 1) {
                 os.mutexR3 = 0;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire Outputting on the screen resource ");
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire \"Outputting on the screen\" resource ");
 
             } else {
                 os.blockedForOutput.add(this);
                 os.blockedQ.add(this);
-                this.pcb.replace("Process state : ", ProcessState.blocked);
+                this.setProcessState(ProcessState.blocked);
+
+                //print blocked queue
+                System.out.println("Process " + this + " is blocked for outputting on the screen.");
+                os.printBlockedForOutput();
+                os.printBlockedQ();
             }
         } else if (resource.equals("userInput")) {
             if (os.mutexR2 == 1) {
                 os.mutexR2 = 0;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire Taking user input resource ");
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire \"Taking user input\" resource ");
             } else {
                 os.blockedForScanner.add(this);
                 os.blockedQ.add(this);
-                this.pcb.replace("Process state : ", ProcessState.blocked);
+                this.setProcessState(ProcessState.blocked);
+
+                //print blocked queue
+                System.out.println("Process " + this + " is blocked for taking user input.");
+                os.printBlockedForScanner();
+                os.printBlockedQ();
             }
         } else {
             if (os.mutexR1 == 1) {
                 os.mutexR1 = 0;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire Accessing a file, to read or to write resource ");
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire \"Accessing a file, to read or to write\" resource ");
             } else {
                 os.blockedForAccessing.add(this);
                 os.blockedQ.add(this);
-                this.pcb.replace("Process state : ", ProcessState.blocked);
+                this.setProcessState(ProcessState.blocked);
+
+                //print blocked queue
+                System.out.println("Process " + this + " is blocked for accessing a file.");
+                os.printBlockedForAccessing();
+                os.printBlockedQ();
             }
 
         }
@@ -155,11 +192,17 @@ public class Process {
         if (resource.equals("userOutput")) {
             if (os.blockedForOutput.isEmpty()) {
                 os.mutexR3 = 1;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished Outputting on the screen resource ");
-                this.pcb.replace("Process state : ", ProcessState.ready);
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Outputting on the screen\" resource ");
+                //this.setProcessState(ProcessState.ready);
             } else {
                 Process p = os.blockedForOutput.poll();
                 os.readyQ.add(p);
+                p.setProcessState(ProcessState.ready);
+
+                //print ready queue
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Outputting on the screen\" resource " +
+                        "and process " + p + " is now ready to run.");
+                os.printReadyQ();
 
                 while (os.blockedQ.peek() != p)
                     os.blockedQ.add(os.blockedQ.poll());
@@ -170,11 +213,17 @@ public class Process {
         } else if (resource.equals("userInput")) {
             if (os.blockedForScanner.isEmpty()) {
                 os.mutexR2 = 1;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished Taking user input resource ");
-                this.pcb.replace("Process state : ", ProcessState.ready);
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Taking user input\" resource ");
+                //this.setProcessState(ProcessState.ready);
             } else {
                 Process p = os.blockedForScanner.poll();
                 os.readyQ.add(p);
+                p.setProcessState(ProcessState.ready);
+
+                //print ready queue
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Taking user input\" resource " +
+                        "and process " + p + " is now ready to run.");
+                os.printReadyQ();
 
                 while (os.blockedQ.peek() != p)
                     os.blockedQ.add(os.blockedQ.poll());
@@ -183,11 +232,17 @@ public class Process {
         } else {
             if (os.blockedForAccessing.isEmpty()) {
                 os.mutexR1 = 1;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished Accessing a file, to read or to write resource ");
-                this.pcb.replace("Process state : ", ProcessState.ready);
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Accessing a file, to read or to write\" resource ");
+                //this.setProcessState(ProcessState.ready);
             } else {
                 Process p = os.blockedForAccessing.poll();
                 os.readyQ.add(p);
+                p.setProcessState(ProcessState.ready);
+
+                //print ready queue
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Accessing a file, to read or to write\" resource " +
+                        "and process " + p + " is now ready to run.");
+                os.printReadyQ();
 
                 while (os.blockedQ.peek() != p)
                     os.blockedQ.add(os.blockedQ.poll());
@@ -199,11 +254,14 @@ public class Process {
     }
 
     public static void printFromTo(int x, int y) {
-        System.out.print("Numbers from " + x + " to " + y + " are : ");
+        OperatingSystem.print("Numbers from " + x + " to " + y + " are : ");
         for (int i = x + 1; i < y; i++)
-            System.out.print(i + (((i == y - 1) ? "" : ",")));
-        System.out.println("");
+            OperatingSystem.print(i + "" /*+ (((i == y - 1) ? "" : ","))*/);
+        OperatingSystem.print("");
+    }
 
+    public String toString(){
+        return this.pcb.get("Process ID : ").toString();
     }
 
 
