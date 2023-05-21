@@ -340,12 +340,12 @@ public class OperatingSystem {
 
 
 
-        Process po =os.createProcess("Program_3");
+        Process po =os.createProcess("Program_2");
 
         System.out.print("[");
         for (Pair p : os.memory)
             System.out.print(p + ", ");
-        System.out.print("]");
+        System.out.println("]");
 
         int i = 0;
         while(i<7) {

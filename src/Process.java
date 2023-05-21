@@ -1,3 +1,4 @@
+import java.security.PublicKey;
 import java.sql.Time;
 import java.time.LocalTime;
 import java.util.Hashtable;
@@ -43,55 +44,56 @@ public class Process {
         int pc = (int) this.pcb.get("Program Counter : ");
         String lineOfInstructions = (String) os.getMemory()[pc].getData();
         String[] instructions = lineOfInstructions.split(" ");
-
-        for (int i = 0; i < instructions.length; i++) {
-            switch (instructions[i]) {
-                case "semWait":
-                    this.semWait(instructions[i+1]);
-                    i++;
-                    break;
-                case "semSignal":
-                    this.semSignal(instructions[i+1]);
-                    i++;
-                    break;
-                case "assign":
-                    this.assign(instructions[i + 1], instructions[i + 2]);
-                    i = i + 2;
-                    break;
-                case "printFromTo":
-                    int x = (int) this.getData(instructions[i + 1]);
-                    int y = (int) this.getData(instructions[i + 2]);
-                    i = i + 2;
-                    printFromTo(x, y);
-                    break;
-                case "print":
-                    String dataToPrint = (String) this.getData(instructions[i + 1]);
-                    i++;
-                    this.os.print(dataToPrint);
-                    break;
-                case "readFile" :
-                    String dataToRead = (String) this.getData(instructions[i + 1]);
-                    i++;
-                    this.os.readFile(dataToRead);
-                    break;
-                case "writeFile" :
-                    String fileName = (String) this.getData(instructions[i + 1]);
-                    String data = (String) this.getData(instructions[i + 2]);
-                    i= i+2;
-                    this.os.writeFile(fileName,data);
-                    break;
-                default:
-                    System.out.println(instructions[i] + " instruction is not supported");
-
-            }
-        }
+        execute(instructions);
         this.pcb.replace("Program Counter : ", pc+1);
 
     }
+    public void execute(String[] instructions){
+        switch (instructions[0]) {
+            case "semWait":
+                this.semWait(instructions[1]);
+                break;
+            case "semSignal":
+                this.semSignal(instructions[1]);
+                break;
+            case "assign":
+                if(instructions[2].equals("input"))
+                  this.assign(instructions[1], instructions[2]);
+//                else{
+//                    String[] arr = new String[instructions.length-2];
+//                    for (int i = 0 ; i <arr.length ;i++)
+//                        arr[i] = instructions[i+2];
+//                    this.assign(instructions[1],(String) execute(arr));
+//                }
 
-    public Object getData(String input) {
+                break;
+            case "printFromTo":
+                int x = (int) this.mapVarToData(instructions[1]);
+                int y = (int) this.mapVarToData(instructions[2]);
+                printFromTo(x, y);
+                break;
+            case "print":
+                String dataToPrint = (String) this.mapVarToData(instructions[1]);
+                this.os.print(dataToPrint);
+                break;
+            case "readFile" :
+                String dataToRead = (String) this.mapVarToData(instructions[1]);
+                 this.os.readFile(dataToRead);
+                 break;
+            case "writeFile" :
+                String fileName = (String) this.mapVarToData(instructions[1]);
+                String data = (String) this.mapVarToData(instructions[2]);
+                this.os.writeFile(fileName,data);
+                break;
+            default:
+                System.out.println(instructions[0] + " instruction is not supported");
+
+        }
+    }
+
+    public Object mapVarToData(String var) {
         for (int j = (int) this.pcb.get("Minimum Boundary : ") + 5; j < (int) this.pcb.get("Minimum Boundary : ") + 8; j++) {
-            if (input.equals(os.getMemory()[j].getVariable()))
+            if (var.equals(os.getMemory()[j].getVariable()))
                 return os.getMemory()[j].getData();
         }
         return null;
