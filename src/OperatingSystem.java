@@ -49,6 +49,9 @@ public class OperatingSystem {
         blockedForAccessing = new LinkedList<>();
         blockedForScanner = new LinkedList<>();
         blockedForOutput = new LinkedList<>();
+        mutexR1=1;
+        mutexR2=1;
+        mutexR3=1;
     }
 
     public LinkedList<String> readFile(String fileName) {
@@ -63,13 +66,13 @@ public class OperatingSystem {
             }
             myReader.close();
         } catch (FileNotFoundException e) {
-            System.out.println("An error occurred.");
+            System.out.println("An error occurred. This file may not exist");
             e.printStackTrace();
         }
         return data;
     }
 
-    public void createProcess(String fileName) {
+    public Process createProcess(String fileName) {
         int minBoundary = 0;
         int maxBoundary;
         int processID;
@@ -110,7 +113,7 @@ public class OperatingSystem {
         }
 
         System.out.println("Process with PID " + readFromMemory(minBoundary).getData() + " is created and put into memory");
-
+         return p;
     }
 
     public void writeFile(String filename, String data) {
@@ -307,22 +310,55 @@ public class OperatingSystem {
         // os.writeFile("omar&ziad","playing football and ping pong \n eating meat");
         // os.print("Program_1");
         // System.out.println(isNumbers("1242876jbub"));
-//        os.createProcess("Program_1");
-//        os.readyQ.poll().assign("c", "input");
 
-//        //print memory
-//        System.out.print("[");
-//        for (Pair p : os.memory)
-//            System.out.print(p + ", ");
+        //os.readyQ.poll().assign("c", "input");
+
+        //print memory
+//     System.out.print("[");
+//             for (Pair p : os.memory)
+//                  System.out.print(p + ", ");
 //        System.out.print("]");
 
 //        printFromTo(3,9);
 //        os.startScheduler(); //don't test will run forever!!!
-//
 //       String lineOfInstructions = "assign b readFile a";
 //        String[] instructions = lineOfInstructions.split(" ");
 //        for (int i =0 ;i<instructions.length;i++)
 //            System.out.println(instructions[i]);
+
+
+
+
+
+
+
+
+
+
+
+        /*  The following lines of  code  are to test executeLine() */
+
+
+
+        Process po =os.createProcess("Program_3");
+
+        System.out.print("[");
+        for (Pair p : os.memory)
+            System.out.print(p + ", ");
+        System.out.print("]");
+
+        int i = 0;
+        while(i<7) {
+            po.executeLine();
+            i++;
+        }
+
+
+        System.out.print("[");
+        for (Pair p : os.memory)
+            System.out.print(p + ", ");
+        System.out.print("]");
+
     }
 }
 

@@ -47,11 +47,11 @@ public class Process {
         for (int i = 0; i < instructions.length; i++) {
             switch (instructions[i]) {
                 case "semWait":
-                    this.semWait(instructions[i++]);
+                    this.semWait(instructions[i+1]);
                     i++;
                     break;
                 case "semSignal":
-                    this.semSignal(instructions[i++]);
+                    this.semSignal(instructions[i+1]);
                     i++;
                     break;
                 case "assign":
@@ -81,11 +81,11 @@ public class Process {
                     this.os.writeFile(fileName,data);
                     break;
                 default:
-                    System.out.println("This instruction is not supported");
+                    System.out.println(instructions[i] + " instruction is not supported");
 
             }
         }
-        this.pcb.replace("Program Counter : ", pc++);
+        this.pcb.replace("Program Counter : ", pc+1);
 
     }
 
@@ -123,7 +123,7 @@ public class Process {
         if (resource.equals("userOutput")) {
             if (os.mutexR3 == 1) {
                 os.mutexR3 = 0;
-                System.out.println("Process " + this.pcb.get("Process ID : ") + "wants to acquire Outputting on the screen resource ");
+                System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire Outputting on the screen resource ");
 
             } else {
                 os.blockedForOutput.add(this);
@@ -200,9 +200,10 @@ public class Process {
     }
 
     public static void printFromTo(int x, int y) {
-        System.out.print("Numbers from " + x + "to" + y + "are : ");
+        System.out.print("Numbers from " + x + " to " + y + " are : ");
         for (int i = x + 1; i < y; i++)
             System.out.print(i + (((i == y - 1) ? "" : ",")));
+        System.out.println("");
 
     }
 
