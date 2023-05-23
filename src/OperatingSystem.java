@@ -119,7 +119,17 @@ public class OperatingSystem {
     public void writeFile(String filename, String data) {
         try {
             // to write in the file
-            new File(filename + ".txt");
+            try {
+                File myObj = new File(filename +".txt");
+                if (myObj.createNewFile()) {
+                    System.out.println("File created: " + myObj.getName());
+                } else {
+                    System.out.println("File already exists.");
+                }
+            } catch (IOException e) {
+                System.out.println("An error occurred.");
+                e.printStackTrace();
+            }
             FileWriter fWriter = new FileWriter(filename + ".txt");
 
 
@@ -385,12 +395,12 @@ public class OperatingSystem {
 
     public static void main(String[] args) {
         OperatingSystem os = new OperatingSystem();
-        os.startScheduler();
-
+       // os.startScheduler();
+        os.writeFile("omar&ziad","playing football and ping pong \n eating meat");
+        
         /*os.readFile("Program_1");
         System.out.println(os.toString());
-        os.writeFile("omar&ziad","playing football and ping pong \n eating meat");
-        os.print("Program_1");
+       
         System.out.println(isNumbers("1242876jbub"));
 
         os.readyQ.poll().assign("c", "input");*/
