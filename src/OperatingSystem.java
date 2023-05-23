@@ -17,6 +17,7 @@ public class OperatingSystem {
     private ArrayList<Pair> memoryDisk;
     private Hashtable<String, String> fileDisk;
 
+
     //memory constants
     final static int partitionSize = 20;
     final static int memSize = 40;
@@ -33,9 +34,11 @@ public class OperatingSystem {
     private final static int processThreeArrivalTime = 4;
 
     int mutexR1;
+    Process resourceOwnerR1;
     int mutexR2;
+    Process resourceOwnerR2;
     int mutexR3;
-
+    Process resourceOwnerR3;
     public OperatingSystem() {
         highestPid = -1;
         memory = new Pair[memSize];
@@ -395,8 +398,8 @@ public class OperatingSystem {
 
     public static void main(String[] args) {
         OperatingSystem os = new OperatingSystem();
-       // os.startScheduler();
-        os.writeFile("omar&ziad","playing football and ping pong \n eating meat");
+        os.startScheduler();
+        //os.writeFile("omar&ziad","playing football and ping pong \n eating meat");
         
         /*os.readFile("Program_1");
         System.out.println(os.toString());

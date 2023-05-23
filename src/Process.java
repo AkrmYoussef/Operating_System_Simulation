@@ -82,7 +82,7 @@ public class Process {
                  break;
             case "writeFile" :
                 String fileName = (String) this.mapVarToData(instructions[1]);
-                String data = (String) this.mapVarToData(instructions[2]);
+                String data =  this.mapVarToData(instructions[2]) + "";
                 this.os.writeFile(fileName,data);
                 break;
             default:
@@ -144,6 +144,7 @@ public class Process {
         if (resource.equals("userOutput")) {
             if (os.mutexR3 == 1) {
                 os.mutexR3 = 0;
+                os.resourceOwnerR1=this;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire \"Outputting on the screen\" resource ");
 
             } else {
@@ -159,6 +160,7 @@ public class Process {
         } else if (resource.equals("userInput")) {
             if (os.mutexR2 == 1) {
                 os.mutexR2 = 0;
+                os.resourceOwnerR2=this;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire \"Taking user input\" resource ");
             } else {
                 os.blockedForScanner.add(this);
@@ -173,6 +175,7 @@ public class Process {
         } else {
             if (os.mutexR1 == 1) {
                 os.mutexR1 = 0;
+                os.resourceOwnerR3=this;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " wants to acquire \"Accessing a file, to read or to write\" resource ");
             } else {
                 os.blockedForAccessing.add(this);
@@ -190,6 +193,8 @@ public class Process {
 
     public void semSignal(String resource) {
         if (resource.equals("userOutput")) {
+            if(this != os.resourceOwnerR1)
+                return;
             if (os.blockedForOutput.isEmpty()) {
                 os.mutexR3 = 1;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Outputting on the screen\" resource ");
@@ -198,7 +203,7 @@ public class Process {
                 Process p = os.blockedForOutput.poll();
                 os.readyQ.add(p);
                 p.setProcessState(ProcessState.ready);
-
+                 os.resourceOwnerR1 = p;
                 //print ready queue
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Outputting on the screen\" resource " +
                         "and process " + p + " is now ready to run.");
@@ -211,6 +216,8 @@ public class Process {
 
             }
         } else if (resource.equals("userInput")) {
+            if(this != os.resourceOwnerR2)
+                return;
             if (os.blockedForScanner.isEmpty()) {
                 os.mutexR2 = 1;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Taking user input\" resource ");
@@ -219,7 +226,7 @@ public class Process {
                 Process p = os.blockedForScanner.poll();
                 os.readyQ.add(p);
                 p.setProcessState(ProcessState.ready);
-
+                os.resourceOwnerR2 = p;
                 //print ready queue
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Taking user input\" resource " +
                         "and process " + p + " is now ready to run.");
@@ -230,6 +237,8 @@ public class Process {
                 os.blockedQ.poll();
             }
         } else {
+            if(this != os.resourceOwnerR3)
+                return;
             if (os.blockedForAccessing.isEmpty()) {
                 os.mutexR1 = 1;
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Accessing a file, to read or to write\" resource ");
@@ -238,7 +247,7 @@ public class Process {
                 Process p = os.blockedForAccessing.poll();
                 os.readyQ.add(p);
                 p.setProcessState(ProcessState.ready);
-
+                os.resourceOwnerR3 = p;
                 //print ready queue
                 System.out.println("Process " + this.pcb.get("Process ID : ") + " has finished \"Accessing a file, to read or to write\" resource " +
                         "and process " + p + " is now ready to run.");
